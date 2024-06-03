@@ -3,7 +3,8 @@ import torch.nn as nn
 import torch.optim as optim
 from models import select_model, init_weights
 from dataloader import Dataloader
-from utils import save_log
+from utils import save_log, get_device
+import argparse
 
 
 def test(model, test_loader, criterion, device):
@@ -67,43 +68,46 @@ def train(model, train_loader, test_loader, criterion, optimizer, device, epochs
 
 
 if __name__ == '__main__':
-    # 参数
-    batch_size = 64
-    epochs = 150
-    learning_rates = [0.1, 0.03, 0.01, 0.003, 0.001]
-    weight_decays = [0, 5e-4, 1e-4, 5e-5, 1e-5]
-    init_stds = ['Kaiming', 0.01, 0.03, 0.1, 0.3, 1]
+    paser = argparse.ArgumentParser()
+
+    paser.add_argument('--batch_size', type=int, default=64)
+    paser.add_argument('--epochs', type=int, default=200)
+    paser.add_argument('--learning_rate', type=float, default=0.01)
+    paser.add_argument('--weight_decay', type=float, default=0)
+    paser.add_argument('--init_std', type=float, default=-1.0)
+    paser.add_argument('--optimizer', type=str, default='SGD')
+    paser.add_argument('--device', type=int, default=0)
+    paser.add_argument('--dataset', type=str, default='cifar10')
+    paser.add_argument('--model', type=str, default='VGG16')
+
+    args = paser.parse_args()
+
+    device = get_device(args.device)
+
+    net = select_model(args.model).to(device)
+
+    init_weights(net, args.init_std)
+
+    epochs = args.epochs
+
+    # 损失函数
     criterion = nn.CrossEntropyLoss()
-    optimzers = ['SGD', 'Adam']
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    datasets = ['cifar10', 'cifar100']
-    models = ['VGG16', 'ResNet18']
 
-    for dataset in datasets:
-        for model_name in models:
-            for optimizer_name in optimzers:
-                for lr in learning_rates:
-                    for weight_decay in weight_decays:
-                        for std in init_stds:
-                            # 创建模型实例
-                            net = select_model(model_name).to(device)
-                            # 初始化权重
-                            init_weights(net, std)
+    # 定义优化器
+    if args.optimizer == 'SGD':
+        optimizer = optim.SGD(net.parameters(), lr=args.learning_rate, momentum=0.9, weight_decay=args.weight_decay)
+    else:
+        optimizer = optim.Adam(net.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay)
 
-                            # 定义优化器
-                            if optimizer_name == 'SGD':
-                                optimizer = optim.SGD(net.parameters(), lr=lr, momentum=0.9, weight_decay=weight_decay)
-                            else:
-                                optimizer = optim.Adam(net.parameters(), lr=lr, weight_decay=weight_decay)
+    # 数据集
+    dataloader = Dataloader(args.dataset, args.batch_size)
+    train_loader, test_loader = dataloader.get_loader()
+    # 训练
+    train_loss, test_loss, train_acc, test_acc = train(net, train_loader, test_loader,
+                                                       criterion,
+                                                       optimizer, device, epochs)
 
-                            # 数据集
-                            dataloader = Dataloader(dataset, batch_size)
-                            train_loader, test_loader = dataloader.get_loader()
-                            # 训练
-                            train_loss, test_loss, train_acc, test_acc = train(net, train_loader, test_loader,
-                                                                               criterion,
-                                                                               optimizer, device, epochs)
-                            # 保存日志
-                            save_log(model_name, dataset, optimizer_name, std, lr, weight_decay, epochs,
-                                     (train_loss, test_loss, train_acc, test_acc),
-                                     f'logs/{model_name}_{dataset}_{optimizer_name}_{std}_{lr}_{weight_decay}.pkl')
+    save_log(args.model, args.dataset, args.optimizer, args.init_std, args.learning_rate, args.weight_decay,
+             args.epochs,
+             (train_loss, test_loss, train_acc, test_acc),
+             f'logs/{args.model}_{args.dataset}_{args.optimizer}_{args.init_std}_{args.learning_rate}_{args.weight_decay}.pkl')

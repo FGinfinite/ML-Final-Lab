@@ -1,4 +1,5 @@
 import pickle
+import torch
 
 
 def save_log(model_name, dataset_name, optimizer_name, std, lr, weight_decay, epochs, result, save_path):
@@ -24,3 +25,10 @@ def load_log(load_path):
 
 def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
+
+
+def get_device(gpu):
+    device = torch.device('cpu')
+    if gpu >= 0 and torch.cuda.is_available():
+        device = torch.device('cuda:' + str(gpu))
+    return device

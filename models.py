@@ -2,26 +2,35 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-def select_model(model_name):
+def select_model(model_name, dataset):
+    if dataset == 'cifar10':
+        num_classes = 10 
+    elif dataset == 'cifar100':
+        num_classes = 100
+    elif dataset == 'dogs_vs_cats':
+        num_classes = 2
+    else:
+        raise ValueError('Dataset not supported')
+    
     if model_name == 'VGG11':
-        return VGG('VGG11')
+        return VGG('VGG11',num_classes)
     elif model_name == 'VGG13':
-        return VGG('VGG13')
+        return VGG('VGG13',num_classes)
     elif model_name == 'VGG16':
-        return VGG('VGG16')
+        return VGG('VGG16',num_classes)
     elif model_name == 'VGG19':
-        return VGG('VGG19')
+        return VGG('VGG19',num_classes)
 
     elif model_name == 'ResNet18':
-        return ResNet(BasicBlock, [2, 2, 2, 2])
+        return ResNet(BasicBlock, [2, 2, 2, 2],num_classes)
     elif model_name == 'ResNet34':
-        return ResNet(BasicBlock, [3, 4, 6, 3])
+        return ResNet(BasicBlock, [3, 4, 6, 3],num_classes)
     elif model_name == 'ResNet50':
-        return ResNet(Bottleneck, [3, 4, 6, 3])
+        return ResNet(Bottleneck, [3, 4, 6, 3],num_classes)
     elif model_name == 'ResNet101':
-        return ResNet(Bottleneck, [3, 4, 23, 3])
+        return ResNet(Bottleneck, [3, 4, 23, 3],num_classes)
     elif model_name == 'ResNet152':
-        return ResNet(Bottleneck, [3, 8, 36, 3])
+        return ResNet(Bottleneck, [3, 8, 36, 3],num_classes)
 
     else:
         raise ValueError('Model name not found')
@@ -63,11 +72,11 @@ vgg_cfgs = {
 
 
 class VGG(nn.Module):
-    def __init__(self, vgg_name):
+    def __init__(self, vgg_name, num_classes=10):
         super(VGG, self).__init__()
         self.model_name = vgg_name
         self.features = self._make_layers(vgg_cfgs[vgg_name])
-        self.classifier = nn.Linear(512, 10)
+        self.classifier = nn.Linear(512, num_classes)
 
     def forward(self, x):
         out = self.features(x)

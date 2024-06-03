@@ -83,6 +83,7 @@ if __name__ == '__main__':
     paser.add_argument('--device', type=int, default=0)
     paser.add_argument('--dataset', type=str, default='cifar10')
     paser.add_argument('--model', type=str, default='VGG16')
+    paser.add_argument('--data_augmentation', action='store_true')
 
     args = paser.parse_args()
 
@@ -91,7 +92,7 @@ if __name__ == '__main__':
 
     device = get_device(args.device)
 
-    net = select_model(args.model).to(device)
+    net = select_model(args.model,args.dataset).to(device)
 
 
     init_weights(net, args.init_std)

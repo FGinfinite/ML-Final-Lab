@@ -28,8 +28,7 @@ def select_model(model_name):
 
 
 def init_weights(model, std):
-    # 如果std是浮点型，那么就用正态分布初始化；否则使用Kaiming初始化
-    if isinstance(std, float):
+    if std != -1.0:
         for m in model.modules():
             if isinstance(m, nn.Conv2d):
                 nn.init.normal_(m.weight, 0, std)

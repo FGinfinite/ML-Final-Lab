@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 from models import select_model, init_weights
 from dataloader import Dataloader
-from utils import save_log, get_device
+from utils import save_log, get_device, set_seed
 import argparse
 
 
@@ -68,6 +68,10 @@ def train(model, train_loader, test_loader, criterion, optimizer, device, epochs
 
 
 if __name__ == '__main__':
+    print("---------------------")
+
+    set_seed(42)
+
     paser = argparse.ArgumentParser()
 
     paser.add_argument('--batch_size', type=int, default=64)
@@ -82,9 +86,13 @@ if __name__ == '__main__':
 
     args = paser.parse_args()
 
+    print("args:", args)
+
+
     device = get_device(args.device)
 
     net = select_model(args.model).to(device)
+
 
     init_weights(net, args.init_std)
 

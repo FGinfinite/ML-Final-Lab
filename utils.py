@@ -1,6 +1,15 @@
 import pickle
 import torch
+import numpy as np
+import random
 
+def set_seed(seed):
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    np.random.seed(seed)
+    random.seed(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
 
 def save_log(model_name, dataset_name, optimizer_name, std, lr, weight_decay, epochs, result, save_path):
     log = {

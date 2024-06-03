@@ -1,9 +1,9 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import torchvision
-from models import VGG, ResNet, BasicBlock
+from models import select_model, init_weights
 from dataloader import Dataloader
+from utils import save_log
 
 
 def test(model, test_loader, criterion, device):
@@ -63,25 +63,47 @@ def train(model, train_loader, test_loader, criterion, optimizer, device, epochs
         print(f'Train Loss: {cur_train_loss:.4f} Train Acc: {cur_train_acc:.4f}')
         print(f'Test Loss: {cur_test_loss:.4f} Test Acc: {cur_test_acc:.4f}')
 
+    return train_loss, test_loss, train_acc, test_acc
+
 
 if __name__ == '__main__':
     # 参数
     batch_size = 64
-    epochs = 10
-    LR = 0.001
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    dataset = 'cifar10'
-
-    # 创建模型实例
-    net = VGG('VGG16').to(device)
-
-    # 定义损失函数和优化器
+    epochs = 150
+    learning_rates = [0.1, 0.03, 0.01, 0.003, 0.001]
+    weight_decays = [0, 5e-4, 1e-4, 5e-5, 1e-5]
+    init_stds = ['Kaiming', 0.01, 0.03, 0.1, 0.3, 1]
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.SGD(net.parameters(), lr=LR, momentum=0.9, weight_decay=5e-4)
+    optimzers = ['SGD', 'Adam']
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    datasets = ['cifar10', 'cifar100']
+    models = ['VGG16', 'ResNet18']
 
-    # 数据集
-    dataloader = Dataloader(dataset, batch_size)
-    trainloader, testloader = dataloader.get_loader()
+    for dataset in datasets:
+        for model_name in models:
+            for optimizer_name in optimzers:
+                for lr in learning_rates:
+                    for weight_decay in weight_decays:
+                        for std in init_stds:
+                            # 创建模型实例
+                            net = select_model(model_name).to(device)
+                            # 初始化权重
+                            init_weights(net, std)
 
-    # 训练
-    train(net, trainloader, testloader, criterion, optimizer, device, epochs)
+                            # 定义优化器
+                            if optimizer_name == 'SGD':
+                                optimizer = optim.SGD(net.parameters(), lr=lr, momentum=0.9, weight_decay=weight_decay)
+                            else:
+                                optimizer = optim.Adam(net.parameters(), lr=lr, weight_decay=weight_decay)
+
+                            # 数据集
+                            dataloader = Dataloader(dataset, batch_size)
+                            train_loader, test_loader = dataloader.get_loader()
+                            # 训练
+                            train_loss, test_loss, train_acc, test_acc = train(net, train_loader, test_loader,
+                                                                               criterion,
+                                                                               optimizer, device, epochs)
+                            # 保存日志
+                            save_log(model_name, dataset, optimizer_name, std, lr, weight_decay, epochs,
+                                     (train_loss, test_loss, train_acc, test_acc),
+                                     f'logs/{model_name}_{dataset}_{optimizer_name}_{std}_{lr}_{weight_decay}.pkl')

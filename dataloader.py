@@ -22,6 +22,18 @@ class Dataloader:
                 test_set = CIFAR10(root='./dataset', train=False, download=True, transform=self.transform)
                 self.test_loader = DataLoader(test_set, batch_size=self.batch_size, shuffle=False, num_workers=2)
 
+            if dataset_name == 'cifar100':
+                self.transform = Compose([
+                    ToTensor(),
+                    Normalize((0.5071, 0.4867, 0.4408), (0.2675, 0.2565, 0.2761)),
+                ])
+                # 加载CIFAR-100数据集
+                train_set = CIFAR10(root='./dataset', train=True, download=True, transform=self.transform)
+                self.train_loader = DataLoader(train_set, batch_size=self.batch_size, shuffle=True, num_workers=2)
+
+                test_set = CIFAR10(root='./dataset', train=False, download=True, transform=self.transform)
+                self.test_loader = DataLoader(test_set, batch_size=self.batch_size, shuffle=False, num_workers=2)
+
             else:
                 raise ValueError('Dataset not supported')
 

@@ -1,8 +1,61 @@
-import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-cfgs = {
+
+def select_model(model_name):
+    if model_name == 'VGG11':
+        return VGG('VGG11')
+    elif model_name == 'VGG13':
+        return VGG('VGG13')
+    elif model_name == 'VGG16':
+        return VGG('VGG16')
+    elif model_name == 'VGG19':
+        return VGG('VGG19')
+
+    elif model_name == 'ResNet18':
+        return ResNet(BasicBlock, [2, 2, 2, 2])
+    elif model_name == 'ResNet34':
+        return ResNet(BasicBlock, [3, 4, 6, 3])
+    elif model_name == 'ResNet50':
+        return ResNet(Bottleneck, [3, 4, 6, 3])
+    elif model_name == 'ResNet101':
+        return ResNet(Bottleneck, [3, 4, 23, 3])
+    elif model_name == 'ResNet152':
+        return ResNet(Bottleneck, [3, 8, 36, 3])
+
+    else:
+        raise ValueError('Model name not found')
+
+
+def init_weights(model, std):
+    # 如果std是浮点型，那么就用正态分布初始化；否则使用Kaiming初始化
+    if isinstance(std, float):
+        for m in model.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.normal_(m.weight, 0, std)
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.Linear):
+                nn.init.normal_(m.weight, 0, std)
+                nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.BatchNorm2d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
+    else:
+        for m in model.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.Linear):
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+                nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.BatchNorm2d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
+
+
+vgg_cfgs = {
     'VGG11': [64, 'M', 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M'],
     'VGG13': [64, 64, 'M', 128, 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M'],
     'VGG16': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 'M', 512, 512, 512, 'M', 512, 512, 512, 'M'],
@@ -13,7 +66,8 @@ cfgs = {
 class VGG(nn.Module):
     def __init__(self, vgg_name):
         super(VGG, self).__init__()
-        self.features = self._make_layers(cfgs[vgg_name])
+        self.model_name = vgg_name
+        self.features = self._make_layers(vgg_cfgs[vgg_name])
         self.classifier = nn.Linear(512, 10)
 
     def forward(self, x):
@@ -66,9 +120,38 @@ class BasicBlock(nn.Module):
         return out
 
 
+class Bottleneck(nn.Module):
+    expansion = 4
+
+    def __init__(self, in_planes, planes, stride=1):
+        super(Bottleneck, self).__init__()
+        self.conv1 = nn.Conv2d(in_planes, planes, kernel_size=1, bias=False)
+        self.bn1 = nn.BatchNorm2d(planes)
+        self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, stride=stride, padding=1, bias=False)
+        self.bn2 = nn.BatchNorm2d(planes)
+        self.conv3 = nn.Conv2d(planes, self.expansion * planes, kernel_size=1, bias=False)
+        self.bn3 = nn.BatchNorm2d(self.expansion * planes)
+
+        self.shortcut = nn.Sequential()
+        if stride != 1 or in_planes != self.expansion * planes:
+            self.shortcut = nn.Sequential(
+                nn.Conv2d(in_planes, self.expansion * planes, kernel_size=1, stride=stride, bias=False),
+                nn.BatchNorm2d(self.expansion * planes)
+            )
+
+    def forward(self, x):
+        out = F.relu(self.bn1(self.conv1(x)))
+        out = F.relu(self.bn2(self.conv2(out)))
+        out = self.bn3(self.conv3(out))
+        out += self.shortcut(x)
+        out = F.relu(out)
+        return out
+
+
 class ResNet(nn.Module):
     def __init__(self, block, num_blocks, num_classes=10):
         super(ResNet, self).__init__()
+
         self.in_planes = 64
 
         self.conv1 = conv3x3(3, 64)

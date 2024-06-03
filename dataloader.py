@@ -34,6 +34,18 @@ class Dataloader:
                 test_set = CIFAR10(root='./dataset', train=False, download=True, transform=self.transform)
                 self.test_loader = DataLoader(test_set, batch_size=self.batch_size, shuffle=False, num_workers=2)
 
+            elif dataset_name == 'ImageNet':
+                self.transform = Compose([
+                    ToTensor(),
+                    Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
+                ])
+                # 加载ImageNet数据集
+                train_set = CIFAR10(root='./dataset', train=True, download=True, transform=self.transform)
+                self.train_loader = DataLoader(train_set, batch_size=self.batch_size, shuffle=True, num_workers=2)
+
+                test_set = CIFAR10(root='./dataset', train=False, download=True, transform=self.transform)
+                self.test_loader = DataLoader(test_set, batch_size=self.batch_size, shuffle=False, num_workers=2)
+
             else:
                 raise ValueError('Dataset not supported')
 

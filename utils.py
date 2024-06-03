@@ -32,8 +32,12 @@ def load_log(load_path):
     return log
 
 
-def count_parameters(model):
-    return sum(p.numel() for p in model.parameters() if p.requires_grad)
+def count_parameters(model, in_mb=False):
+    params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    if in_mb:
+        return params * 4 / (1024 ** 2)
+    else:
+        return params
 
 
 def get_device(gpu):

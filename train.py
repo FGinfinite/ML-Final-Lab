@@ -119,4 +119,4 @@ if __name__ == '__main__':
     save_log(args.model, args.dataset, args.optimizer, args.init_std, args.learning_rate, args.weight_decay,
              args.epochs,
              (train_loss, test_loss, train_acc, test_acc),
-             f'logs/{args.model}_{args.dataset}_{args.optimizer}_{args.init_std}_{args.learning_rate}_{args.weight_decay}.pkl')
+             f'/root/autodl-tmp/logs/{args.model}_{args.dataset}_{args.optimizer}_{args.init_std}_{args.learning_rate}_{args.weight_decay}.pkl')

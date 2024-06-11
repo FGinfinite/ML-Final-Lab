@@ -108,7 +108,7 @@ if __name__ == '__main__':
     else:
         optimizer = optim.Adam(net.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay)
 
-    # 数据集
+    # 数据集：目前并没有划分验证集val_loader，只有训练集train_loader和测试集test_loader。先以大规模实验获取最佳超参数的范围，再划分验证集，最后在验证集上更细致地调整超参数以获取最佳模型。
     dataloader = Dataloader(args.dataset, args.batch_size, args.data_augmentation)
     train_loader, test_loader = dataloader.get_loader()
     # 训练

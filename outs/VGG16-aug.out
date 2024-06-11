@@ -108,3 +108,15 @@ Epoch 35/100
 Train Loss: 0.4895 Train Acc: 0.8342
 Test Loss: 0.5466 Test Acc: 0.8287
 Epoch 36/100
+Train Loss: 0.4821 Train Acc: 0.8376
+Test Loss: 0.4941 Test Acc: 0.8387
+Epoch 37/100
+Train Loss: 0.4690 Train Acc: 0.8399
+Test Loss: 0.5412 Test Acc: 0.8238
+Epoch 38/100
+Train Loss: 0.4576 Train Acc: 0.8453
+Test Loss: 0.4556 Test Acc: 0.8526
+Epoch 39/100
+Train Loss: 0.4501 Train Acc: 0.8476
+Test Loss: 0.4382 Test Acc: 0.8545
+Epoch 40/100

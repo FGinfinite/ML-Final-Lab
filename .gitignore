@@ -1,4 +1,5 @@
-/dataset/cifar-10-python.tar.gz
 /logs/*
 /dataset/*
 /__pycache__/*
+/logs-agus/*
+/outs/*

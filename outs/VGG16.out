@@ -300,3 +300,31 @@ Epoch 99/100
 Train Loss: 0.0434 Train Acc: 0.9861
 Test Loss: 0.8002 Test Acc: 0.8238
 Epoch 100/100
+Train Loss: 0.0463 Train Acc: 0.9854
+Test Loss: 0.7470 Test Acc: 0.8314
+---------------------
+args: Namespace(batch_size=64, epochs=100, learning_rate=0.03, weight_decay=0.0001, init_std=-1.0, optimizer='SGD', device=4, dataset='cifar100', model='VGG16', data_augmentation=False)
+Files already downloaded and verified
+Files already downloaded and verified
+Epoch 1/100
+Train Loss: 5.0380 Train Acc: 0.0121
+Test Loss: 4.6288 Test Acc: 0.0155
+Epoch 2/100
+Train Loss: 4.5675 Train Acc: 0.0140
+Test Loss: 4.5615 Test Acc: 0.0155
+Epoch 3/100
+Train Loss: 4.5170 Train Acc: 0.0177
+Test Loss: 4.4799 Test Acc: 0.0195
+Epoch 4/100
+Train Loss: 4.3571 Train Acc: 0.0271
+Test Loss: 4.2170 Test Acc: 0.0373
+Epoch 5/100
+Train Loss: 4.1136 Train Acc: 0.0478
+Test Loss: 4.0157 Test Acc: 0.0541
+Epoch 6/100
+Train Loss: 3.9238 Train Acc: 0.0726
+Test Loss: 3.7692 Test Acc: 0.0991
+Epoch 7/100
+Train Loss: 3.6883 Train Acc: 0.1083
+Test Loss: 3.5082 Test Acc: 0.1344
+Epoch 8/100

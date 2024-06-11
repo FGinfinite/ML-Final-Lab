@@ -109,14 +109,17 @@ if __name__ == '__main__':
         optimizer = optim.Adam(net.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay)
 
     # 数据集
-    dataloader = Dataloader(args.dataset, args.batch_size)
+    dataloader = Dataloader(args.dataset, args.batch_size, args.data_augmentation)
     train_loader, test_loader = dataloader.get_loader()
     # 训练
     train_loss, test_loss, train_acc, test_acc = train(net, train_loader, test_loader,
                                                        criterion,
                                                        optimizer, device, epochs)
+    if args.data_augmentation:
+        log_path=f'logs-augs/{args.model}_{args.dataset}_{args.optimizer}_{args.init_std}_{args.learning_rate}_{args.weight_decay}.pkl'
+    else:
+        log_path=f'logs/{args.model}_{args.dataset}_{args.optimizer}_{args.init_std}_{args.learning_rate}_{args.weight_decay}.pkl'
 
     save_log(args.model, args.dataset, args.optimizer, args.init_std, args.learning_rate, args.weight_decay,
-             args.epochs,
-             (train_loss, test_loss, train_acc, test_acc),
-             f'/root/autodl-tmp/logs/{args.model}_{args.dataset}_{args.optimizer}_{args.init_std}_{args.learning_rate}_{args.weight_decay}.pkl')
+            args.epochs,
+            (train_loss, test_loss, train_acc, test_acc),log_path)

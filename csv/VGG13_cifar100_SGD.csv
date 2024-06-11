@@ -26,12 +26,12 @@
 0,init_std: 0.3,weight_decay: 0.0,weight_decay: 0.0001,weight_decay: 0.0003,weight_decay: 0.001,weight_decay: 0.003,weight_decay: 0.01
 1,learning_rate: 0.1,0.4581,0.4996,0.5133,0.4075,0.2086,0.0366
 2,learning_rate: 0.03,0.4128,0.5266,0.5045,0.523,0.4634,0.214
-3,learning_rate: 0.01,0.3442,0.3581,0.5208,N/A,N/A,N/A
+3,learning_rate: 0.01,0.3442,0.3581,0.5208,0.5083,N/A,N/A
 4,learning_rate: 0.003,N/A,N/A,N/A,N/A,N/A,N/A
 5,learning_rate: 0.001,N/A,N/A,N/A,N/A,N/A,N/A
 0,init_std: 1.0,weight_decay: 0.0,weight_decay: 0.0001,weight_decay: 0.0003,weight_decay: 0.001,weight_decay: 0.003,weight_decay: 0.01
 1,learning_rate: 0.1,0.2305,0.4835,0.5099,0.3653,0.1882,0.0342
 2,learning_rate: 0.03,0.2912,0.3802,0.4682,0.513,0.438,0.2092
-3,learning_rate: 0.01,0.3137,0.327,0.3944,N/A,N/A,N/A
+3,learning_rate: 0.01,0.3137,0.327,0.3944,0.5031,N/A,N/A
 4,learning_rate: 0.003,N/A,N/A,N/A,N/A,N/A,N/A
 5,learning_rate: 0.001,N/A,N/A,N/A,N/A,N/A,N/A

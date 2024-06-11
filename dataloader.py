@@ -55,16 +55,13 @@ class Dataloader:
                 raise ValueError('Dataset not supported')
             
         else:
-            self.data_augmentation_transforms = transforms.Compose([
-                transforms.RandomRotation(degrees=15),  # 随机旋转±15度
-                transforms.RandomHorizontalFlip(p=0.5),  # 50%的概率进行水平翻转
-                transforms.RandomResizedCrop(size=(224, 224), scale=(0.8, 1.0), ratio=(0.75, 1.33)),  # 随机裁剪并调整大小
-                transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),  # 色彩抖动
-            ])
             
             if dataset_name=='cifar10':
                 self.train_transform = Compose([
-                    *self.data_augmentation_transforms,
+                    transforms.RandomRotation(degrees=15),  # 随机旋转±15度
+                    transforms.RandomHorizontalFlip(p=0.5),  # 50%的概率进行水平翻转
+                    transforms.RandomResizedCrop(size=(32,32), scale=(0.8, 1.0), ratio=(0.75, 1.33)),  # 随机裁剪并调整大小
+                    transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),  # 色彩抖动
                     ToTensor(),
                     Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
                 ])
@@ -82,7 +79,10 @@ class Dataloader:
             
             elif dataset_name=='cifar100':
                 self.train_transform = Compose([
-                    *self.data_augmentation_transforms,
+                    transforms.RandomRotation(degrees=15),  # 随机旋转±15度
+                    transforms.RandomHorizontalFlip(p=0.5),  # 50%的概率进行水平翻转
+                    transforms.RandomResizedCrop(size=(32,32), scale=(0.8, 1.0), ratio=(0.75, 1.33)),  # 随机裁剪并调整大小
+                    transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),  # 色彩抖动
                     ToTensor(),
                     Normalize((0.5071, 0.4867, 0.4408), (0.2675, 0.2565, 0.2761)),
                 ])
@@ -102,7 +102,10 @@ class Dataloader:
                 split_result=split_dataset('./dataset/DVG', 0.2)
                 
                 self.train_transform = transforms.Compose([
-                    *self.data_augmentation_transforms,
+                    transforms.RandomRotation(degrees=15),  # 随机旋转±15度
+                    transforms.RandomHorizontalFlip(p=0.5),  # 50%的概率进行水平翻转
+                    transforms.RandomResizedCrop(size=(224, 224), scale=(0.8, 1.0), ratio=(0.75, 1.33)),  # 随机裁剪并调整大小
+                    transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),  # 色彩抖动
                     transforms.ToTensor(),
                     Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
                 ])

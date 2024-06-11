@@ -1,3 +1,8 @@
+from turtle import pd
+import pandas as panda
+import numpy as np
+from sklearn.preprocessing import MinMaxScaler
+import torch
 from torchvision.datasets import CIFAR10, CIFAR100
 from torch.utils.data import DataLoader, Dataset
 from torchvision.transforms import Compose, Normalize, ToTensor, RandomHorizontalFlip, RandomAffine
@@ -11,6 +16,10 @@ class Dataloader:
     def __init__(self, dataset_name, batch_size, augmentation=False):
         self.dataset_name = dataset_name
         self.batch_size = batch_size
+        self.x_train = None
+        self.y_train = None
+        self.x_test = None
+        self.y_test = None
 
         if not augmentation:
             if dataset_name == 'cifar10':
@@ -50,6 +59,16 @@ class Dataloader:
 
                 test_set=CatsAndDogsDataset(data_folder='./dataset/DVG', split_result=split_result, train=False, transform=self.transform)
                 self.test_set = DataLoader(test_set, batch_size=self.batch_size, shuffle=False, num_workers=2)
+            
+            elif dataset_name == 'stock':
+                # 使用StockDataset类加载训练和测试数据
+                train_set = StockDataset(filepath='./dataset/stock/stock.csv', lookback=10, train=True)
+                self.x_train, self.y_train = train_set.x, train_set.y
+                self.train_loader = DataLoader(train_set, batch_size=self.batch_size, shuffle=True, num_workers=2)
+
+                test_set = StockDataset(filepath='./dataset/stock/stock.csv', lookback=10, train=False)
+                self.x_test, self.y_test = test_set.x, test_set.y
+                self.test_loader = DataLoader(test_set, batch_size=self.batch_size, shuffle=False, num_workers=2)
             
             else:
                 raise ValueError('Dataset not supported')
@@ -122,6 +141,19 @@ class Dataloader:
                 test_set=CatsAndDogsDataset(data_folder='./dataset/DVG', split_result=split_result, train=False, transform=self.test_transform)
                 self.test_set = DataLoader(test_set, batch_size=self.batch_size, shuffle=False, num_workers=2)
                 
+            elif dataset_name == 'stock':
+                # 使用StockDataset类加载训练和测试数据
+                train_set = StockDataset(filepath='./dataset/stock/stock.csv', lookback=10, train=True)
+                self.x_train, self.y_train = train_set.x, train_set.y
+                self.train_loader = DataLoader(train_set, batch_size=self.batch_size, shuffle=True, num_workers=2)
+
+                test_set = StockDataset(filepath='./dataset/stock/stock.csv', lookback=10, train=False)
+                self.x_test, self.y_test = test_set.x, test_set.y
+                self.test_loader = DataLoader(test_set, batch_size=self.batch_size, shuffle=False, num_workers=2)
+                
+            else:
+                raise ValueError('Dataset not supported')
+                
                 
                 
 
@@ -173,3 +205,45 @@ class CatsAndDogsDataset(Dataset):
             image = self.transform(image)
 
         return image, label
+    
+class StockDataset(Dataset):
+    def __init__(self, filepath, lookback, train=True):
+        self.data = panda.read_csv(filepath)
+        self.data = self.data.sort_values('date')
+        
+        # 选择特征
+        features = ['open', 'high', 'low', 'close', 'volume', 'money', 'change']
+        self.data = self.data[features]
+        
+        # 归一化
+        self.scaler = MinMaxScaler(feature_range=(0, 1))
+        data_scaled = self.scaler.fit_transform(self.data)
+        
+        # 数据分割
+        self.x, self.y = self.split_data(data_scaled, lookback, train)
+    
+    def split_data(self, stock, lookback, train):
+        data = []
+        for index in range(len(stock) - lookback):
+            data.append(stock[index: index + lookback])
+        data = np.array(data)
+        
+        # 训练测试分割
+        test_set_size = int(np.round(0.2 * data.shape[0]))
+        train_set_size = data.shape[0] - test_set_size
+        
+        if train:
+            data = data[:train_set_size]
+        else:
+            data = data[train_set_size:]
+        
+        x = data[:, :-1, :]
+        y = data[:, -1, :]
+        
+        return x, y
+
+    def __getitem__(self, index):
+        return torch.tensor(self.x[index], dtype=torch.float), torch.tensor(self.y[index], dtype=torch.float)
+
+    def __len__(self):
+        return self.x.shape[0]

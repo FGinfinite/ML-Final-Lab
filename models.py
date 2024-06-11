@@ -1,3 +1,5 @@
+import math
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
@@ -9,6 +11,8 @@ def select_model(model_name, dataset):
         num_classes = 100
     elif dataset == 'dogs_vs_cats':
         num_classes = 2
+    elif dataset == 'stock':
+        num_classes = 7
     else:
         raise ValueError('Dataset not supported')
     
@@ -31,6 +35,12 @@ def select_model(model_name, dataset):
         return ResNet(Bottleneck, [3, 4, 23, 3],num_classes)
     elif model_name == 'ResNet152':
         return ResNet(Bottleneck, [3, 8, 36, 3],num_classes)
+    
+    elif model_name == 'lstm':
+        return LSTM(num_classes, 32, 2, num_classes)
+    
+    elif model_name == 'transformer':
+        return TransformerModel(num_classes, 32, 2, 2, num_classes)
 
     else:
         raise ValueError('Model name not found')
@@ -188,3 +198,60 @@ class ResNet(nn.Module):
         out = out.view(out.size(0), -1)
         out = self.linear(out)
         return out
+
+
+class LSTM(nn.Module):
+    def __init__(self, input_dim, hidden_dim, num_layers, output_dim):
+        super(LSTM, self).__init__()
+        self.hidden_dim = hidden_dim
+        self.num_layers = num_layers
+
+        self.lstm = nn.LSTM(input_dim, hidden_dim, num_layers, batch_first=True)
+        self.fc = nn.Linear(hidden_dim, output_dim)
+
+    def forward(self, x):
+        h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_dim).requires_grad_()
+        c0 = torch.zeros(self.num_layers, x.size(0), self.hidden_dim).requires_grad_()
+        out, (hn, cn) = self.lstm(x, (h0.detach(), c0.detach()))
+        out = self.fc(out[:, -1, :])
+        return out
+    
+class TransformerModel(nn.Module):
+    def __init__(self, input_dim, hidden_dim, num_layers, nhead, output_dim, dropout=0.1):
+        super(TransformerModel, self).__init__()
+        self.input_dim = input_dim
+        self.hidden_dim = hidden_dim
+        self.num_layers = num_layers
+        self.nhead = nhead
+        
+        self.encoder = nn.Linear(input_dim, hidden_dim)
+        self.pos_encoder = PositionalEncoding(hidden_dim, dropout)
+        transformer_encoder_layer = nn.TransformerEncoderLayer(
+            d_model=hidden_dim, nhead=nhead, dim_feedforward=hidden_dim, dropout=dropout, batch_first=True)
+        self.transformer_encoder = nn.TransformerEncoder(transformer_encoder_layer, num_layers)
+        self.decoder = nn.Linear(hidden_dim, output_dim)
+        
+    def forward(self, src):
+        src = self.encoder(src) * math.sqrt(self.hidden_dim)
+        src = self.pos_encoder(src)
+        output = self.transformer_encoder(src)
+        output = self.decoder(output[:, -1, :])
+        return output
+    
+class PositionalEncoding(nn.Module):
+    def __init__(self, hidden_dim, dropout=0.1):
+        super(PositionalEncoding, self).__init__()
+        self.dropout = nn.Dropout(p=dropout)
+        self.hidden_dim = hidden_dim
+
+    def forward(self, x):
+        seq_length = x.size(1)
+        pe = torch.zeros(seq_length, self.hidden_dim, device=x.device)
+        position = torch.arange(0, seq_length, dtype=torch.float, device=x.device).unsqueeze(1)
+        div_term = torch.exp(torch.arange(0, self.hidden_dim, 2).float() * (-math.log(10000.0) / self.hidden_dim)).to(x.device)
+        pe[:, 0::2] = torch.sin(position * div_term)
+        pe[:, 1::2] = torch.cos(position * div_term)
+        
+        pe = pe.unsqueeze(0)
+        x = x + pe
+        return self.dropout(x)

@@ -13,7 +13,7 @@ from torchvision import transforms
 from torch.utils.data import DataLoader, Dataset
 
 class Dataloader:
-    def __init__(self, dataset_name, batch_size, augmentation=False):
+    def __init__(self, dataset_name, batch_size=8, augmentation=False):
         self.dataset_name = dataset_name
         self.batch_size = batch_size
         self.x_train = None
@@ -50,6 +50,7 @@ class Dataloader:
                 split_result=split_dataset('./dataset/DVG', 0.2)
                 
                 self.transform = transforms.Compose([
+                    transforms.Resize((224, 224)),
                     transforms.ToTensor(),
                     Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
                 ])
@@ -58,7 +59,7 @@ class Dataloader:
                 self.train_loader = DataLoader(train_set, batch_size=self.batch_size, shuffle=True, num_workers=2)
 
                 test_set=CatsAndDogsDataset(data_folder='./dataset/DVG', split_result=split_result, train=False, transform=self.transform)
-                self.test_set = DataLoader(test_set, batch_size=self.batch_size, shuffle=False, num_workers=2)
+                self.test_loader = DataLoader(test_set, batch_size=self.batch_size, shuffle=False, num_workers=2)
             
             elif dataset_name == 'stock':
                 # 使用StockDataset类加载训练和测试数据
@@ -69,6 +70,8 @@ class Dataloader:
                 test_set = StockDataset(filepath='./dataset/stock/stock.csv', lookback=10, train=False)
                 self.x_test, self.y_test = test_set.x, test_set.y
                 self.test_loader = DataLoader(test_set, batch_size=self.batch_size, shuffle=False, num_workers=2)
+                
+            
             
             else:
                 raise ValueError('Dataset not supported')

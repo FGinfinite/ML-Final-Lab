@@ -2,13 +2,16 @@ import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from functorch.einops import rearrange
+from torch.nn import Transformer
+
 from utils import get_device
 
 
 def select_model(model_name, dataset):
     if dataset == 'cifar10':
         img_size = 32
-        num_classes = 10 
+        num_classes = 10
     elif dataset == 'cifar100':
         img_size = 32
         num_classes = 100
@@ -19,30 +22,35 @@ def select_model(model_name, dataset):
         num_classes = 7
     else:
         raise ValueError('Dataset not supported')
-    
+
     if model_name == 'VGG11':
-        return VGG('VGG11',num_classes, img_size)
+        return VGG('VGG11', num_classes, img_size)
     elif model_name == 'VGG13':
-        return VGG('VGG13',num_classes, img_size)
+        return VGG('VGG13', num_classes, img_size)
     elif model_name == 'VGG16':
-        return VGG('VGG16',num_classes, img_size)
+        return VGG('VGG16', num_classes, img_size)
     elif model_name == 'VGG19':
-        return VGG('VGG19',num_classes, img_size)
+        return VGG('VGG19', num_classes, img_size)
 
     elif model_name == 'ResNet18':
-        return ResNet(BasicBlock, [2, 2, 2, 2],num_classes, img_size)
+        return ResNet(BasicBlock, [2, 2, 2, 2], num_classes, img_size)
     elif model_name == 'ResNet34':
-        return ResNet(BasicBlock, [3, 4, 6, 3],num_classes, img_size)
+        return ResNet(BasicBlock, [3, 4, 6, 3], num_classes, img_size)
     elif model_name == 'ResNet50':
-        return ResNet(Bottleneck, [3, 4, 6, 3],num_classes, img_size)
+        return ResNet(Bottleneck, [3, 4, 6, 3], num_classes, img_size)
     elif model_name == 'ResNet101':
-        return ResNet(Bottleneck, [3, 4, 23, 3],num_classes, img_size)
+        return ResNet(Bottleneck, [3, 4, 23, 3], num_classes, img_size)
     elif model_name == 'ResNet152':
-        return ResNet(Bottleneck, [3, 8, 36, 3],num_classes, img_size)
-    
+        return ResNet(Bottleneck, [3, 8, 36, 3], num_classes, img_size)
+
+    elif model_name == 'VisionTransformer':
+        # 根据img_size设置patch_size
+        patch_size = 16 if img_size == 224 else 4
+        return VisionTransformer(img_size, patch_size, num_classes, 3, 1024, 6, 8, 2048)
+
     elif model_name == 'lstm':
         return LSTM(num_classes, 32, 2, num_classes)
-    
+
     elif model_name == 'transformer':
         return TransformerModel(num_classes, 32, 2, 2, num_classes)
 
@@ -113,7 +121,7 @@ class VGG(nn.Module):
                 in_channels = x
         layers += [nn.AvgPool2d(kernel_size=1, stride=1)]
         return nn.Sequential(*layers)
-    
+
     def caculate_image_dimension(self, image_size):
         for layer in self.features:
             if isinstance(layer, nn.Conv2d):
@@ -213,7 +221,7 @@ class ResNet(nn.Module):
         out = out.view(out.size(0), -1)
         out = self.linear(out)
         return out
-    
+
     def calculate_image_dimension(self, image_size):
         # 计算第一个卷积层对图像尺寸的影响
         image_size = int((image_size - 3 + 2 * 1) / 1 + 1)  # 对应conv1的kernel_size, padding, stride
@@ -230,6 +238,47 @@ class ResNet(nn.Module):
 
         return image_size
 
+class VisionTransformer(nn.Module):
+    def __init__(self, image_size=224, patch_size=16, num_classes=2, channels=3, dim=1024, depth=6, heads=8,
+                 mlp_dim=2048):
+        super(VisionTransformer, self).__init__()
+        assert image_size % patch_size == 0, 'Image dimensions must be divisible by the patch size.'
+        num_patches = (image_size // patch_size) ** 2
+        patch_dim = channels * patch_size ** 2
+
+        self.patch_size = patch_size
+        self.dim = dim
+        self.pos_embedding = nn.Parameter(torch.randn(1, num_patches + 1, dim))
+        self.patch_to_embedding = nn.Linear(patch_dim, dim)
+        self.cls_token = nn.Parameter(torch.randn(1, 1, dim))
+        transformer_encoder_layer = nn.TransformerEncoderLayer(batch_first=True, d_model=dim, nhead=heads)
+        self.transformer = nn.TransformerEncoder(transformer_encoder_layer, num_layers=depth)
+        self.to_cls_token = nn.Identity()
+
+        self.mlp_head = nn.Sequential(
+            nn.Linear(dim, mlp_dim),
+            nn.GELU(),
+            nn.Dropout(0.1),
+            nn.Linear(mlp_dim, num_classes)
+        )
+
+    def forward(self, img):
+        p = self.patch_size
+
+        # reshape and flatten the patches of the image
+        x = rearrange(img, 'b c (h p1) (w p2) -> b (h w) (p1 p2 c)', p1=p, p2=p)
+        x = self.patch_to_embedding(x)
+
+        cls_tokens = self.cls_token.expand(img.shape[0], -1, -1)
+        x = torch.cat((cls_tokens, x), dim=1)
+        x += self.pos_embedding
+        x = self.transformer(x)
+
+        # take the cls token output
+        x = self.to_cls_token(x[:, 0])
+        return self.mlp_head(x)
+
+
 class LSTM(nn.Module):
     def __init__(self, input_dim, hidden_dim, num_layers, output_dim):
         super(LSTM, self).__init__()
@@ -245,7 +294,8 @@ class LSTM(nn.Module):
         out, (hn, cn) = self.lstm(x, (h0.detach(), c0.detach()))
         out = self.fc(out[:, -1, :])
         return out
-    
+
+
 class TransformerModel(nn.Module):
     def __init__(self, input_dim, hidden_dim, num_layers, nhead, output_dim, dropout=0.1):
         super(TransformerModel, self).__init__()
@@ -253,21 +303,22 @@ class TransformerModel(nn.Module):
         self.hidden_dim = hidden_dim
         self.num_layers = num_layers
         self.nhead = nhead
-        
+
         self.encoder = nn.Linear(input_dim, hidden_dim)
         self.pos_encoder = PositionalEncoding(hidden_dim, dropout)
         transformer_encoder_layer = nn.TransformerEncoderLayer(
             d_model=hidden_dim, nhead=nhead, dim_feedforward=hidden_dim, dropout=dropout, batch_first=True)
         self.transformer_encoder = nn.TransformerEncoder(transformer_encoder_layer, num_layers)
         self.decoder = nn.Linear(hidden_dim, output_dim)
-        
+
     def forward(self, src):
         src = self.encoder(src) * math.sqrt(self.hidden_dim)
         src = self.pos_encoder(src)
         output = self.transformer_encoder(src)
         output = self.decoder(output[:, -1, :])
         return output
-    
+
+
 class PositionalEncoding(nn.Module):
     def __init__(self, hidden_dim, dropout=0.1):
         super(PositionalEncoding, self).__init__()
@@ -278,10 +329,11 @@ class PositionalEncoding(nn.Module):
         seq_length = x.size(1)
         pe = torch.zeros(seq_length, self.hidden_dim, device=x.device)
         position = torch.arange(0, seq_length, dtype=torch.float, device=x.device).unsqueeze(1)
-        div_term = torch.exp(torch.arange(0, self.hidden_dim, 2).float() * (-math.log(10000.0) / self.hidden_dim)).to(x.device)
+        div_term = torch.exp(torch.arange(0, self.hidden_dim, 2).float() * (-math.log(10000.0) / self.hidden_dim)).to(
+            x.device)
         pe[:, 0::2] = torch.sin(position * div_term)
         pe[:, 1::2] = torch.cos(position * div_term)
-        
+
         pe = pe.unsqueeze(0)
         x = x + pe
         return self.dropout(x)

@@ -7,6 +7,7 @@ from dataloader import Dataloader
 from utils import save_log, get_device, set_seed
 import argparse
 from tqdm import tqdm
+import time
 
 
 def test(model, test_loader, criterion, device):
@@ -66,6 +67,7 @@ def train(model, train_loader, test_loader, criterion, optimizer, device, epochs
 
         torch.save(model.state_dict(), f'models/{args.model}_{args.dataset}.pt')
 
+        print('current time:', time.strftime('%Y-%m-%d %H:%M:%S', time.localtime()))
         print(f'Train Loss: {cur_train_loss:.4f} Train Acc: {cur_train_acc:.4f}')
         print(f'Test Loss: {cur_test_loss:.4f} Test Acc: {cur_test_acc:.4f}')
 
@@ -73,6 +75,7 @@ def train(model, train_loader, test_loader, criterion, optimizer, device, epochs
 
 
 if __name__ == '__main__':
+    print('current time:', time.strftime('%Y-%m-%d %H:%M:%S', time.localtime()))
     print("---------------------")
 
     set_seed(42)

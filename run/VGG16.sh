@@ -4,9 +4,9 @@ set -e
 batch_size=64
 epochs=100
 device=4
-learning_rates=(0.03 0.01 0.003)
-weight_decays=(0.0001 0.0003 0.001)
-init_stds=(-1.0 0.01 0.03 0.1)
+learning_rates=(0.1 0.03 0.01 0.003 0.001)
+weight_decays=(0.0 0.0001 0.0003 0.001 0.003)
+init_stds=(-1.0)
 optimizers=("SGD" "Adam")
 dataset=("cifar10" "cifar100")
 models=("VGG11" "VGG13" "VGG16" "VGG19" "ResNet18" "ResNet34" "ResNet50" "ResNet101" "ResNet152")

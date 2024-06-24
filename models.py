@@ -1,12 +1,5 @@
-import math
-import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from functorch.einops import rearrange
-from torch.nn import Transformer
-
-from utils import get_device
-
 
 def select_model(model_name, dataset):
     if dataset == 'cifar10':

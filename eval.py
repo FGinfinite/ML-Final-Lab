@@ -3,7 +3,6 @@ import torch
 import numpy as np
 from itertools import product
 from models import select_model
-from sklearn.metrics import accuracy_score, mean_squared_error
 from dataloader import Dataloader 
 from utils import get_device
 import argparse

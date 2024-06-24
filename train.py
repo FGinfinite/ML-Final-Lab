@@ -64,8 +64,6 @@ def train(model, train_loader, test_loader, criterion, optimizer, device, epochs
         test_loss.append(cur_test_loss)
         test_acc.append(cur_test_acc)
 
-        torch.save(model.state_dict(), f'models/{args.model}_{args.dataset}.pt')
-
         print('current time:', time.strftime('%Y-%m-%d %H:%M:%S', time.localtime()))
         print(f'Train Loss: {cur_train_loss:.4f} Train Acc: {cur_train_acc:.4f}')
         print(f'Test Loss: {cur_test_loss:.4f} Test Acc: {cur_test_acc:.4f}')

@@ -6,7 +6,6 @@ from models import select_model, init_weights
 from dataloader import Dataloader
 from utils import save_log, get_device, set_seed
 import argparse
-from tqdm import tqdm
 import time
 
 
@@ -16,7 +15,7 @@ def test(model, test_loader, criterion, device):
     total = 0
     loss = 0
     with torch.no_grad():
-        for data in tqdm(test_loader, desc="Testing Progress"):
+        for data in test_loader:
             images, labels = data[0].to(device), data[1].to(device)
             outputs = model(images)
             loss += criterion(outputs, labels).item()
@@ -41,7 +40,7 @@ def train(model, train_loader, test_loader, criterion, optimizer, device, epochs
         epoch_loss = 0
         epoch_correct = 0
 
-        for data in tqdm(train_loader, desc="Training Progress"):
+        for data in train_loader:
             inputs, labels = data[0].to(device), data[1].to(device)
             optimizer.zero_grad()
             outputs = model(inputs)

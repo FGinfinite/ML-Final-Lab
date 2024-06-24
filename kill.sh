@@ -1,0 +1,1 @@
+pkill -u lishiwei -f 'python.*train.py'

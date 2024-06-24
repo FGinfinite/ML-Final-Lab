@@ -96,3 +96,7 @@ xz=5.4.6=h8cc25b3_1
 yaml=0.2.5=he774522_0
 zlib=1.2.13=h8cc25b3_1
 zstd=1.5.5=hd43e919_2
+torch~=2.3.0
+numpy~=1.26.4
+torchvision~=0.18.0
+pillow~=10.3.0

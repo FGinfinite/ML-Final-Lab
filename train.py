@@ -1,11 +1,13 @@
+import os
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from models import select_model, init_weights
-from dataloader import Dataloader
+from dataloader import Dataloader 
 from utils import save_log, get_device, set_seed
 import argparse
-
+from tqdm import tqdm
 
 def test(model, test_loader, criterion, device):
     model.eval()
@@ -13,7 +15,7 @@ def test(model, test_loader, criterion, device):
     total = 0
     loss = 0
     with torch.no_grad():
-        for data in test_loader:
+        for data in tqdm(test_loader, desc="Testing Progress"):
             images, labels = data[0].to(device), data[1].to(device)
             outputs = model(images)
             loss += criterion(outputs, labels).item()
@@ -37,7 +39,8 @@ def train(model, train_loader, test_loader, criterion, optimizer, device, epochs
         model.train()
         epoch_loss = 0
         epoch_correct = 0
-        for i, data in enumerate(train_loader, 0):
+        
+        for data in tqdm(train_loader, desc="Training Progress"):
             inputs, labels = data[0].to(device), data[1].to(device)
             optimizer.zero_grad()
             outputs = model(inputs)
@@ -61,11 +64,54 @@ def train(model, train_loader, test_loader, criterion, optimizer, device, epochs
         test_loss.append(cur_test_loss)
         test_acc.append(cur_test_acc)
 
+        torch.save(model.state_dict(), f'models/{args.model}_{args.dataset}.pt')
+
         print(f'Train Loss: {cur_train_loss:.4f} Train Acc: {cur_train_acc:.4f}')
         print(f'Test Loss: {cur_test_loss:.4f} Test Acc: {cur_test_acc:.4f}')
 
     return train_loss, test_loss, train_acc, test_acc
 
+
+def train_stock(model, x_train, y_train, optimizer, criterion, num_epochs=100):
+    hist = {'loss': [], 'rmse': []}
+    model.to(device)
+    x_train = x_train.to(device)
+    y_train = y_train.to(device)
+
+    for t in range(num_epochs):
+        model.train()
+        y_train_pred = model(x_train)
+        loss = criterion(y_train_pred, y_train)
+        print("Epoch ", t + 1, "MSE: ", loss.item())
+        hist['loss'].append(loss.item())
+
+        rmse = torch.sqrt(loss).item()
+        hist['rmse'].append(rmse)
+
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+
+    torch.save(model.state_dict(), f'models/{args.model}_stock.pt')
+
+    return model, hist
+
+def test_stock(model, x_test, y_test, criterion):
+    model.eval()
+    x_test = x_test.to(device)
+    y_test = y_test.to(device)
+
+    with torch.no_grad():
+        y_test_pred = model(x_test)
+        test_loss = criterion(y_test_pred, y_test)
+        rmse = torch.sqrt(test_loss).item()
+
+        print(f"Test MSE: {test_loss.item()}")
+        print(f"Test RMSE: {rmse}")
+
+    return test_loss.item(), rmse
+
+        
 
 if __name__ == '__main__':
     print("---------------------")
@@ -75,15 +121,16 @@ if __name__ == '__main__':
     paser = argparse.ArgumentParser()
 
     paser.add_argument('--batch_size', type=int, default=64)
-    paser.add_argument('--epochs', type=int, default=200)
+    paser.add_argument('--epochs', type=int, default=100)
     paser.add_argument('--learning_rate', type=float, default=0.01)
     paser.add_argument('--weight_decay', type=float, default=0)
     paser.add_argument('--init_std', type=float, default=-1.0)
     paser.add_argument('--optimizer', type=str, default='SGD')
+    paser.add_argument('--criterion', type=str, default='CrossEntropyLoss')
     paser.add_argument('--device', type=int, default=0)
-    paser.add_argument('--dataset', type=str, default='cifar10')
+    paser.add_argument('--dataset', type=str, default='dogs_vs_cats')
     paser.add_argument('--model', type=str, default='VGG16')
-    paser.add_argument('--data_augmentation', action='store_true')
+    paser.add_argument('--data_augmentation', action='store_true', default=False)
 
     args = paser.parse_args()
 
@@ -91,8 +138,12 @@ if __name__ == '__main__':
 
 
     device = get_device(args.device)
+    print("device:", device)
 
     net = select_model(args.model,args.dataset).to(device)
+    
+    for dir_name in ['logs', 'models']:
+        os.makedirs(dir_name, exist_ok=True)
 
 
     init_weights(net, args.init_std)
@@ -100,7 +151,10 @@ if __name__ == '__main__':
     epochs = args.epochs
 
     # 损失函数
-    criterion = nn.CrossEntropyLoss()
+    if args.criterion == 'MSE':
+        criterion = nn.MSELoss()
+    else:
+        criterion = nn.CrossEntropyLoss()
 
     # 定义优化器
     if args.optimizer == 'SGD':
@@ -108,15 +162,38 @@ if __name__ == '__main__':
     else:
         optimizer = optim.Adam(net.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay)
 
-    # 数据集
-    dataloader = Dataloader(args.dataset, args.batch_size)
+    # 数据集：目前并没有划分验证集val_loader，只有训练集train_loader和测试集test_loader。先以大规模实验获取最佳超参数的范围，再划分验证集，最后在验证集上更细致地调整超参数以获取最佳模型。
+    
+    dataloader = Dataloader(args.dataset, args.batch_size, args.data_augmentation)
     train_loader, test_loader = dataloader.get_loader()
+    
     # 训练
-    train_loss, test_loss, train_acc, test_acc = train(net, train_loader, test_loader,
-                                                       criterion,
-                                                       optimizer, device, epochs)
+    if args.dataset == 'stock':
+        x_train = torch.from_numpy(dataloader.x_train).type(torch.Tensor)
+        x_test = torch.from_numpy(dataloader.x_test).type(torch.Tensor)
+        y_train = torch.from_numpy(dataloader.y_train).type(torch.Tensor)
+        y_test = torch.from_numpy(dataloader.y_test).type(torch.Tensor)
+        
+        model_trained, training_history = train_stock(net, x_train, y_train, optimizer, criterion, args.epochs)
+        test_mse, test_rmse = test_stock(model_trained, x_test, y_test, criterion)
+        
+        if args.data_augmentation:
+            log_path = f'logs-augs/{args.model}_stock_{args.optimizer}_{args.init_std}_{args.learning_rate}_{args.weight_decay}.pkl'
+        else:
+            log_path = f'logs/{args.model}_stock_{args.optimizer}_{args.init_std}_{args.learning_rate}_{args.weight_decay}.pkl'
+        
+        save_log(args.model, args.dataset, args.optimizer, args.init_std, args.learning_rate, args.weight_decay,
+         args.epochs, (training_history['loss'], training_history['rmse'], test_mse, test_rmse), log_path)
+        
+    else:
+        train_loss, test_loss, train_acc, test_acc = train(net, train_loader, test_loader,
+                                                        criterion,
+                                                        optimizer, device, epochs)
+        if args.data_augmentation:
+            log_path=f'logs-augs/{args.model}_{args.dataset}_{args.optimizer}_{args.init_std}_{args.learning_rate}_{args.weight_decay}.pkl'
+        else:
+            log_path=f'logs/{args.model}_{args.dataset}_{args.optimizer}_{args.init_std}_{args.learning_rate}_{args.weight_decay}.pkl'
 
-    save_log(args.model, args.dataset, args.optimizer, args.init_std, args.learning_rate, args.weight_decay,
-             args.epochs,
-             (train_loss, test_loss, train_acc, test_acc),
-             f'logs/{args.model}_{args.dataset}_{args.optimizer}_{args.init_std}_{args.learning_rate}_{args.weight_decay}.pkl')
+        save_log(args.model, args.dataset, args.optimizer, args.init_std, args.learning_rate, args.weight_decay,
+                args.epochs,
+                (train_loss, test_loss, train_acc, test_acc),log_path)

@@ -10,12 +10,12 @@ def find_best_acc(result):
     return max(result[3])
 
 
-models = ["VGG13", "VGG16", "ResNet18"]
-dataset = "cifar100"
-optimizer = "SGD"
-init_stds = [-1.0, 0.01, 0.03, 0.1, 0.3, 1.0]
+models = ["VGG16", "ResNet18"]
+dataset = "cifar10"
+optimizer = "Adam"
+init_stds = [-1.0]
 learning_rates = [0.1, 0.03, 0.01, 0.003, 0.001]
-weight_decays = [0.0, 0.0001, 0.0003, 0.001, 0.003, 0.01]
+weight_decays = [0.0, 0.0001, 0.0003, 0.001, 0.003]
 
 root_path = "logs/"
 

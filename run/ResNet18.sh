@@ -4,10 +4,10 @@ set -e
 batch_size=64
 epochs=100
 device=2
-learning_rates=(0.1 0.03 0.01 0.003 0.001)
-weight_decays=(0.0 0.0001 0.0003 0.001 0.003)
-init_stds=(-1.0)
-optimizers=("SGD" "Adam")
+learning_rates=(0.03)
+weight_decays=(0.0001)
+init_stds=(0.3 0.1 0.03 0.01 0.003 0.001)
+optimizers=("SGD")
 dataset=("cifar10")
 model="ResNet18"
 # shellcheck disable=SC2068
